@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafia game</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Using a Google Font for a cleaner look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for active/inactive tabs */
+        .tab-btn.active {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+        }
+        .tab-btn {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Hide content panels by default */
+        .tab-content {
+            display: none;
+        }
+        /* Show the active content panel */
+        .tab-content.active {
+            display: block;
+        }
+        /* Modal styles */
+        .modal-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* --- Card Flip Animation Styles --- */
+        .card-container-perspective {
+            perspective: 1000px;
+        }
+        .card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        .card.is-flipped {
+            transform: rotateY(180deg);
+            cursor: default;
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden; /* Safari */
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: box-shadow 0.3s; /* Smooth transition for highlight */
+        }
+        .card-face-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg p-4 sm:p-8">
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button id="tab-btn-seats" class="tab-btn active flex-1 py-3 px-4 font-semibold text-gray-600 rounded-t-lg focus:outline-none">Seats</button>
+            <button id="tab-btn-roles" class="tab-btn flex-1 py-3 px-4 font-semibold text-gray-600 rounded-t-lg focus:outline-none">Roles</button>
+        </div>
+
+        <!-- Tab Content Panels -->
+        <!-- Seats Game Panel -->
+        <div id="tab-content-seats" class="tab-content active">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Seats</h1>
+                <p class="text-gray-600 mb-8">Click any blue card to reveal the next seat number.</p>
+                <div id="card-container" class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8"></div>
+                <button id="restart-button-seats" class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75">
+                    Shuffle & Restart
+                </button>
+            </div>
+        </div>
+
+        <!-- Roles Game Panel -->
+        <div id="tab-content-roles" class="tab-content">
+             <div class="text-center">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Roles</h1>
+                <p class="text-gray-600 mb-8">Click a number to reveal a role card.</p>
+                <div id="role-buttons-container" class="flex flex-wrap justify-center gap-3 mb-8"></div>
+                <button id="restart-button-roles" class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75">
+                    Shuffle & Restart
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Card Fullscreen Modal -->
+    <div id="role-modal" class="fixed inset-0 bg-black bg-opacity-75 modal-overlay opacity-0 pointer-events-none z-50 cursor-pointer">
+        <div id="modal-content" class="w-full h-full">
+            <!-- Fullscreen card content will be injected here -->
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 modal-overlay opacity-0 pointer-events-none z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm text-center p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4" id="confirm-message">Are you sure?</h3>
+            <div class="flex justify-center gap-4">
+                <button id="confirm-cancel-btn" class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+                <button id="confirm-ok-btn" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- GLOBAL DOM ELEMENTS ---
+        const tabBtnSeats = document.getElementById('tab-btn-seats');
+        const tabBtnRoles = document.getElementById('tab-btn-roles');
+        const tabContentSeats = document.getElementById('tab-content-seats');
+        const tabContentRoles = document.getElementById('tab-content-roles');
+
+        // --- TAB SWITCHING LOGIC ---
+        function switchTab(activeTab) {
+            [tabBtnSeats, tabBtnRoles].forEach(btn => btn.classList.remove('active'));
+            [tabContentSeats, tabContentRoles].forEach(content => content.classList.remove('active'));
+
+            if (activeTab === 'seats') {
+                tabBtnSeats.classList.add('active');
+                tabContentSeats.classList.add('active');
+            } else {
+                tabBtnRoles.classList.add('active');
+                tabContentRoles.classList.add('active');
+            }
+        }
+        tabBtnSeats.addEventListener('click', () => switchTab('seats'));
+        tabBtnRoles.addEventListener('click', () => switchTab('roles'));
+
+        // --- UTILITY FUNCTIONS ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // --- GAME 1: SEATS GAME ---
+        const cardContainer = document.getElementById('card-container');
+        const restartButtonSeats = document.getElementById('restart-button-seats');
+        const originalNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let shuffledNumbers = [];
+        let revealIndex = 0;
+        let lastFlippedCard = null;
+
+        function initializeSeatsGame() {
+            revealIndex = 0;
+            lastFlippedCard = null;
+            shuffledNumbers = [...originalNumbers];
+            shuffleArray(shuffledNumbers);
+            cardContainer.innerHTML = '';
+            for (let i = 0; i < 10; i++) {
+                const cardContainerPerspective = document.createElement('div');
+                cardContainerPerspective.className = 'card-container-perspective w-full h-24 md:h-28';
+                const card = document.createElement('div');
+                card.className = 'card';
+                const cardFaceFront = document.createElement('div');
+                cardFaceFront.className = 'card-face card-face-front bg-indigo-500';
+                const cardFaceBack = document.createElement('div');
+                cardFaceBack.className = 'card-face card-face-back bg-white text-indigo-700 border-2 border-indigo-500 text-4xl font-bold';
+                card.appendChild(cardFaceFront);
+                card.appendChild(cardFaceBack);
+                cardContainerPerspective.appendChild(card);
+                card.addEventListener('click', handleCardClick);
+                cardContainer.appendChild(cardContainerPerspective);
+            }
+        }
+
+        function handleCardClick(event) {
+            const clickedCard = event.currentTarget;
+            if (revealIndex >= shuffledNumbers.length || clickedCard.classList.contains('is-flipped')) {
+                return;
+            }
+            if (lastFlippedCard) {
+                const prevBackFace = lastFlippedCard.querySelector('.card-face-back');
+                prevBackFace.classList.remove('ring-4', 'ring-amber-400');
+            }
+            clickedCard.classList.add('is-flipped');
+            const numberToReveal = shuffledNumbers[revealIndex];
+            const backFace = clickedCard.querySelector('.card-face-back');
+            backFace.textContent = numberToReveal;
+            backFace.classList.add('ring-4', 'ring-amber-400');
+            lastFlippedCard = clickedCard;
+            revealIndex++;
+        }
+        restartButtonSeats.addEventListener('click', () => {
+             showConfirmationModal('Are you sure you want to reshuffle the seats?', initializeSeatsGame);
+        });
+
+        // --- GAME 2: ROLE PICKER ---
+        const roleButtonsContainer = document.getElementById('role-buttons-container');
+        const restartButtonRoles = document.getElementById('restart-button-roles');
+        const roleModal = document.getElementById('role-modal');
+        const modalContent = document.getElementById('modal-content');
+        let shuffledRoleDeck = [];
+        let lastRevealedIndex = -1;
+
+        const roleImages = {
+            'Mafia': 'https://placehold.co/200x200/111827/FFFFFF?text=Mafia',
+            'Don': 'https://placehold.co/200x200/4B0082/FFFFFF?text=Don',
+            'Sheriff': 'https://placehold.co/200x200/FFD700/000000?text=Sheriff',
+            'Citizen': 'https://placehold.co/200x200/4682B4/FFFFFF?text=Citizen'
+        };
+
+        function createRoleDeck() {
+            return [
+                { role: 'Mafia', color: 'black' }, { role: 'Mafia', color: 'black' },
+                { role: 'Don', color: 'black' },
+                { role: 'Sheriff', color: 'red' },
+                { role: 'Citizen', color: 'red' }, { role: 'Citizen', color: 'red' },
+                { role: 'Citizen', color: 'red' }, { role: 'Citizen', color: 'red' },
+                { role: 'Citizen', color: 'red' }, { role: 'Citizen', color: 'red' }
+            ];
+        }
+
+        function initializeRoleGame() {
+            shuffledRoleDeck = createRoleDeck();
+            shuffleArray(shuffledRoleDeck);
+            renderRoleButtons();
+        }
+
+        function renderRoleButtons() {
+            roleButtonsContainer.innerHTML = '';
+            for (let i = 0; i < shuffledRoleDeck.length; i++) {
+                const button = document.createElement('button');
+                button.className = 'w-12 h-12 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 transition-colors';
+                button.textContent = i + 1;
+                button.addEventListener('click', () => handleRoleButtonClick(i));
+                roleButtonsContainer.appendChild(button);
+            }
+        }
+
+        function handleRoleButtonClick(index) {
+            lastRevealedIndex = index;
+            const card = shuffledRoleDeck[index];
+            const cardColorClass = card.color === 'red' ? 'text-red-600' : 'text-gray-900';
+            const imageUrl = roleImages[card.role] || 'https://placehold.co/200x200/CCCCCC/FFFFFF?text=Role';
+
+            modalContent.innerHTML = `
+                <div class="w-full h-full bg-white flex flex-col items-center justify-center p-4 text-center">
+                    <p class="text-lg font-semibold text-gray-500 mb-4">You drew card #${index + 1}</p>
+                    <img src="${imageUrl}" alt="${card.role}" class="w-48 h-48 md:w-64 md:h-64 mx-auto my-4 rounded-lg object-cover shadow-2xl" onerror="this.onerror=null;this.src='https://placehold.co/200x200/CCCCCC/FFFFFF?text=Error';">
+                    <h2 class="text-6xl md:text-8xl font-bold ${cardColorClass} mt-4">${card.role}</h2>
+                    <p class="text-gray-400 mt-8 animate-pulse">Click anywhere to close</p>
+                </div>
+            `;
+
+            showRoleModal();
+            // Add a one-time event listener to the modal itself to close it
+            roleModal.addEventListener('click', closeRoleModal, { once: true });
+        }
+
+        function showRoleModal() {
+            roleModal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeRoleModal() {
+            roleModal.classList.add('opacity-0');
+            setTimeout(() => {
+                roleModal.classList.add('pointer-events-none');
+                if (lastRevealedIndex > -1) {
+                    shuffledRoleDeck.splice(lastRevealedIndex, 1);
+                    lastRevealedIndex = -1;
+                    renderRoleButtons();
+                }
+            }, 300); // Match transition duration
+        }
+
+        restartButtonRoles.addEventListener('click', () => {
+            showConfirmationModal('Are you sure you want to reshuffle the roles?', initializeRoleGame);
+        });
+
+        // --- CONFIRMATION MODAL LOGIC ---
+        const confirmModal = document.getElementById('confirm-modal');
+        const confirmMessage = document.getElementById('confirm-message');
+        const confirmOkBtn = document.getElementById('confirm-ok-btn');
+        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+        let confirmCallback = null;
+
+        function showConfirmationModal(message, onConfirm) {
+            confirmMessage.textContent = message;
+            confirmCallback = onConfirm;
+            confirmModal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function hideConfirmationModal() {
+            confirmModal.classList.add('opacity-0');
+            setTimeout(() => {
+                confirmModal.classList.add('pointer-events-none');
+            }, 300);
+        }
+
+        confirmOkBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            hideConfirmationModal();
+        });
+
+        confirmCancelBtn.addEventListener('click', hideConfirmationModal);
+
+
+        // --- INITIALIZE BOTH GAMES ON PAGE LOAD ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSeatsGame();
+            initializeRoleGame();
+        });
+    </script>
+
+</body>
+</html>
