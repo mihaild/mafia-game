@@ -75,28 +75,30 @@
             <button id="tab-btn-roles" class="tab-btn flex-1 py-3 px-4 font-semibold text-gray-600 rounded-t-lg focus:outline-none">Roles</button>
         </div>
 
-        <!-- Tab Content Panels -->
-        <!-- Seats Game Panel -->
-        <div id="tab-content-seats" class="tab-content active">
-            <div class="text-center">
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">Seats</h1>
-                <p class="text-gray-600 mb-8">Click any blue card to reveal the next seat number.</p>
-                <div id="card-container" class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8"></div>
-                <button id="restart-button-seats" class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75">
-                    Shuffle & Restart
-                </button>
+        <!-- Tab Content Container: Sets a minimum height to prevent layout shifts -->
+        <div class="relative min-h-[420px]">
+            <!-- Seats Game Panel -->
+            <div id="tab-content-seats" class="tab-content active absolute w-full">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Seats</h1>
+                    <p class="text-gray-600 mb-8">Click any blue card to reveal the next seat number.</p>
+                    <div id="card-container" class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8"></div>
+                    <button id="restart-button-seats" class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75">
+                        Shuffle & Restart
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <!-- Roles Game Panel -->
-        <div id="tab-content-roles" class="tab-content">
-             <div class="text-center">
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">Roles</h1>
-                <p class="text-gray-600 mb-8">Click a number to reveal a role card.</p>
-                <div id="role-buttons-container" class="flex flex-wrap justify-center gap-3 mb-8"></div>
-                <button id="restart-button-roles" class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75">
-                    Shuffle & Restart
-                </button>
+            <!-- Roles Game Panel -->
+            <div id="tab-content-roles" class="tab-content absolute w-full">
+                 <div class="text-center">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Roles</h1>
+                    <p class="text-gray-600 mb-8">Click a number to reveal a role card.</p>
+                    <div id="role-buttons-container" class="flex flex-wrap justify-center gap-3 mb-8"></div>
+                    <button id="restart-button-roles" class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75">
+                        Shuffle & Restart
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -262,7 +264,6 @@
             `;
 
             showRoleModal();
-            // Add a one-time event listener to the modal itself to close it
             roleModal.addEventListener('click', closeRoleModal, { once: true });
         }
 
